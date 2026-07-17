@@ -177,133 +177,228 @@
     </div>
 
 
-    <script>
+    <!-- =================================
+         FIREBASE
+    ================================= -->
+
+    <script type="module">
 
 
         // =================================
-        // NodeMCU URL
+        // FIREBASE IMPORTS
         // =================================
 
-        const NODE_MCU_URL =
-            "http://robot.local";
+        import {
+
+            initializeApp
+
+        } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 
 
-        // =================================
-        // TURN ON
-        // =================================
+        import {
 
-        async function turnOn() {
+            getDatabase,
 
+            ref,
 
-            try {
+            set,
 
+            onValue
 
-                const response = await fetch(
-                    `${NODE_MCU_URL}/on`
-                );
-
-
-                const result =
-                    await response.text();
-
-
-                console.log(result);
-
-
-                updateStatus("💡 Light is ON");
-
-
-            }
-
-
-            catch (error) {
-
-
-                console.error(error);
-
-
-                updateStatus(
-                    "❌ Connection Error"
-                );
-            }
-        }
+        } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-database.js";
 
 
         // =================================
-        // TURN OFF
+        // FIREBASE CONFIG
         // =================================
 
-        async function turnOff() {
+        const firebaseConfig = {
 
 
-            try {
+            apiKey:
+
+                "AIzaSyB8YbWMEOLP3T9oqNibQOx3hXhcmXmzn9A",
 
 
-                const response = await fetch(
-                    `${NODE_MCU_URL}/off`
-                );
+            authDomain:
+
+                "led-automated-switch.firebaseapp.com",
 
 
-                const result =
-                    await response.text();
+            projectId:
+
+                "led-automated-switch",
 
 
-                console.log(result);
+            storageBucket:
+
+                "led-automated-switch.firebasestorage.app",
 
 
-                updateStatus("🔴 Light is OFF");
+            messagingSenderId:
+
+                "313118537988",
 
 
-            }
+            appId:
+
+                "1:313118537988:web:2d3fd8f473ffdeb9637851",
 
 
-            catch (error) {
+            measurementId:
 
+                "G-5JX5NGDHN0"
 
-                console.error(error);
-
-
-                updateStatus(
-                    "❌ Connection Error"
-                );
-            }
-        }
+        };
 
 
         // =================================
-        // GET STATUS
+        // INITIALIZE FIREBASE
         // =================================
 
-        async function lightStatus() {
+        const app = initializeApp(
+            firebaseConfig
+        );
 
 
-            try {
+        // =================================
+        // INITIALIZE DATABASE
+        // =================================
+
+        const database = getDatabase(
+            app
+        );
 
 
-                const response = await fetch(
-                    `${NODE_MCU_URL}/status`
-                );
+        // =================================
+        // LIGHT DATABASE REFERENCE
+        // =================================
+
+        const lightRef = ref(
+
+            database,
+
+            "devices/light"
+
+        );
 
 
-                const status =
-                    await response.text();
+        // =================================
+        // TURN LIGHT ON
+        // =================================
+
+        window.turnOn = function () {
+
+
+            set(
+
+                lightRef,
+
+                true
+
+            )
+
+            .then(() => {
 
 
                 console.log(
-                    "Current Status:",
-                    status
+                    "Light turned ON"
+                );
+
+
+            })
+
+            .catch((error) => {
+
+
+                console.error(error);
+
+
+                updateStatus(
+                    "❌ Database Error"
+                );
+
+            });
+
+        };
+
+
+        // =================================
+        // TURN LIGHT OFF
+        // =================================
+
+        window.turnOff = function () {
+
+
+            set(
+
+                lightRef,
+
+                false
+
+            )
+
+            .then(() => {
+
+
+                console.log(
+                    "Light turned OFF"
+                );
+
+
+            })
+
+            .catch((error) => {
+
+
+                console.error(error);
+
+
+                updateStatus(
+                    "❌ Database Error"
+                );
+
+            });
+
+        };
+
+
+        // =================================
+        // LISTEN TO LIGHT STATUS
+        // =================================
+
+        onValue(
+
+            lightRef,
+
+            (snapshot) => {
+
+
+                const lightState =
+                    snapshot.val();
+
+
+                console.log(
+
+                    "Current Light State:",
+
+                    lightState
+
                 );
 
 
                 if (
-                    status.trim() === "ON"
+
+                    lightState === true
+
                 ) {
 
 
                     updateStatus(
-                        "💡 Light is ON"
-                    );
 
+                        "💡 Light is ON"
+
+                    );
 
                 }
 
@@ -312,48 +407,36 @@
 
 
                     updateStatus(
+
                         "🔴 Light is OFF"
+
                     );
+
                 }
 
-
             }
 
-
-            catch (error) {
-
-
-                console.error(error);
-
-
-                updateStatus(
-                    "❌ Connection Error"
-                );
-            }
-        }
+        );
 
 
         // =================================
-        // UPDATE STATUS
+        // UPDATE UI STATUS
         // =================================
 
         function updateStatus(message) {
 
 
-            document.getElementById(
-                "status"
-            ).textContent = message;
+            document
+
+                .getElementById("status")
+
+                .textContent = message;
+
         }
 
 
-        // =================================
-        // PAGE LOAD
-        // =================================
-
-        lightStatus();
-
-
     </script>
+
 
 </body>
 
