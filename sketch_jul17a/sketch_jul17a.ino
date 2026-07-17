@@ -1,280 +1,101 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266mDNS.h>
+#include <Firebase_ESP_Client.h>
 
-// =================================
-// Wi-Fi
-// =================================
+//--WiFi
+#define WIFI_SSID "Dnk"
+#define WIFI_PASSWORD "(Dinuka0512)"
 
-const char* ssid = "Dnk";
-const char* password = "(Dinuka0512)";
+//--Firebase
+#define API_KEY "AIzaSyB8YbWMEOLP3T9oqNibQOx3hXhcmXmzn9A"
+#define DATABASE_URL "https://led-automated-switch-default-rtdb.firebaseio.com/"
 
+//--Firebase Login
+#define USER_EMAIL "Dinuka0512@gmail.com"
+#define USER_PASSWORD "121212"
 
-// =================================
-// Device Name
-// =================================
+//--Firebase Objects
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
 
-const char* hostname = "robot";
+//--Hardware
+const uint8_t lightPin = D1;
 
-
-// =================================
-// Pin
-// =================================
-
-const int ledPin = D1;
-
-
-// =================================
-// Light State
-// =================================
-
-bool lightState = false;
-
-
-// =================================
-// Server
-// =================================
-
-WiFiServer server(80);
-
-
-// =================================
-// SETUP
-// =================================
+//--State
+bool currentLightState = false;
+bool lastLightState = false;
 
 void setup() {
-
   Serial.begin(115200);
 
-  Serial.println();
-  Serial.println("Program Started");
-
-
-  // Setup LED
-
-  pinMode(ledPin, OUTPUT);
-
-  digitalWrite(ledPin, LOW);
-
-  lightState = false;
-
-
-  // Connect Wi-Fi
+  pinMode(lightPin, OUTPUT);
+  digitalWrite(lightPin, LOW);
 
   connectToWiFi();
+  setupFirebase();
 
-
-  // Start mDNS
-
-  if (MDNS.begin(hostname)) {
-
-    Serial.println("mDNS Started");
-
-    Serial.print("URL: http://");
-
-    Serial.print(hostname);
-
-    Serial.println(".local");
-  }
-
-
-  // Start Server
-
-  server.begin();
-
-  server.setNoDelay(true);
-
-  Serial.println("Server Started");
+  Serial.println("System Ready");
 }
 
-
-// =================================
-// LOOP
-// =================================
-
 void loop() {
-
-  MDNS.update();
-
-
-  WiFiClient client = server.available();
-
-
-  if (!client) {
-
+  if (!Firebase.ready()) {
+    Serial.println("Firebase Not Ready");
+    delay(1000);
     return;
   }
 
-
-  handleClient(client);
+  readLightState();
+  delay(5);
 }
 
+void setupFirebase() {
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
 
-// =================================
-// CONNECT WIFI
-// =================================
+  auth.user.email = USER_EMAIL;
+  auth.user.password = USER_PASSWORD;
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+
+  Serial.println("Firebase Started");
+}
+
+void readLightState() {
+  if (Firebase.RTDB.getBool(&fbdo, "/devices/light")) {
+    currentLightState = fbdo.boolData();
+
+    if (currentLightState != lastLightState) {
+      updateLight(currentLightState);
+      lastLightState = currentLightState;
+    }
+  } else {
+    Serial.print("Firebase Error: ");
+    Serial.println(fbdo.errorReason());
+  }
+}
+
+void updateLight(bool state) {
+  digitalWrite(lightPin, state ? HIGH : LOW);
+
+  Serial.print("Light: ");
+  Serial.println(state ? "ON" : "OFF");
+}
 
 void connectToWiFi() {
-
   WiFi.mode(WIFI_STA);
-
-  WiFi.begin(ssid, password);
-
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
 
   Serial.print("Connecting to WiFi");
 
-
   while (WiFi.status() != WL_CONNECTED) {
-
-    delay(100);
-
+    delay(250);
     Serial.print(".");
   }
 
-
   Serial.println();
-
-  Serial.println("WiFi Connected");
-
+  Serial.println("WiFi Connected!");
 
   Serial.print("IP Address: ");
-
   Serial.println(WiFi.localIP());
-}
-
-
-// =================================
-// HANDLE CLIENT
-// =================================
-
-void handleClient(WiFiClient& client) {
-
-
-  // Wait for request
-
-  unsigned long startTime = millis();
-
-
-  while (!client.available()) {
-
-
-    if (millis() - startTime > 1000) {
-
-      client.stop();
-
-      return;
-    }
-
-
-    yield();
-  }
-
-
-  // Read first line
-
-  String request = client.readStringUntil('\r');
-
-
-  Serial.println(request);
-
-
-  // Process request
-
-  processRequest(request);
-
-
-  // Send response
-
-  sendResponse(client);
-
-
-  // Close connection
-
-  delay(5);
-
-  client.stop();
-}
-
-
-// =================================
-// PROCESS REQUEST
-// =================================
-
-void processRequest(String request) {
-
-
-  if (request.indexOf("GET /on") >= 0) {
-
-    turnLightOn();
-  }
-
-
-  else if (request.indexOf("GET /off") >= 0) {
-
-    turnLightOff();
-  }
-
-
-  else if (request.indexOf("GET /status") >= 0) {
-
-    Serial.println("Status Requested");
-  }
-}
-
-
-// =================================
-// TURN ON
-// =================================
-
-void turnLightOn() {
-
-  digitalWrite(ledPin, HIGH);
-
-  lightState = true;
-
-  Serial.println("Light ON");
-}
-
-
-// =================================
-// TURN OFF
-// =================================
-
-void turnLightOff() {
-
-  digitalWrite(ledPin, LOW);
-
-  lightState = false;
-
-  Serial.println("Light OFF");
-}
-
-
-// =================================
-// SEND RESPONSE
-// =================================
-
-void sendResponse(WiFiClient& client) {
-
-
-  client.println("HTTP/1.1 200 OK");
-
-  client.println("Content-Type: text/plain");
-
-  client.println("Access-Control-Allow-Origin: *");
-
-  client.println("Connection: close");
-
-  client.println();
-
-
-  if (lightState) {
-
-    client.print("ON");
-  }
-
-
-  else {
-
-    client.print("OFF");
-  }
 }
