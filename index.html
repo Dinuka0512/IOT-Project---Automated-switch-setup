@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+
+    <link rel="icon" href="data:,">
+
+
+    <title>Light Control</title>
+
+
+    <style>
+
+        * {
+
+            margin: 0;
+
+            padding: 0;
+
+            box-sizing: border-box;
+        }
+
+
+        body {
+
+            min-height: 100vh;
+
+            display: flex;
+
+            justify-content: center;
+
+            align-items: center;
+
+            font-family: Arial, sans-serif;
+
+            background: #111827;
+        }
+
+
+        .container {
+
+            width: 350px;
+
+            padding: 30px;
+
+            text-align: center;
+
+            background: #1f2937;
+
+            border-radius: 16px;
+
+            box-shadow: 0 10px 30px
+                rgba(0, 0, 0, 0.4);
+        }
+
+
+        h1 {
+
+            color: white;
+
+            margin-bottom: 15px;
+        }
+
+
+        .status {
+
+            margin-bottom: 25px;
+
+            font-size: 20px;
+
+            color: #9ca3af;
+        }
+
+
+        .buttons {
+
+            display: flex;
+
+            justify-content: center;
+
+            gap: 15px;
+        }
+
+
+        button {
+
+            border: none;
+
+            padding: 12px 25px;
+
+            border-radius: 8px;
+
+            font-size: 16px;
+
+            cursor: pointer;
+
+            color: white;
+
+            transition: 0.2s;
+        }
+
+
+        .on-button {
+
+            background: #22c55e;
+        }
+
+
+        .off-button {
+
+            background: #ef4444;
+        }
+
+
+        button:hover {
+
+            transform: scale(1.05);
+        }
+
+
+        button:active {
+
+            transform: scale(0.95);
+        }
+
+    </style>
+
+</head>
+
+
+<body>
+
+
+    <div class="container">
+
+
+        <h1>💡 Light Control</h1>
+
+
+        <p class="status"
+           id="status">
+
+            Checking status...
+
+        </p>
+
+
+        <div class="buttons">
+
+
+            <button
+                class="on-button"
+                onclick="turnOn()">
+
+                Turn On
+
+            </button>
+
+
+            <button
+                class="off-button"
+                onclick="turnOff()">
+
+                Turn Off
+
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <script>
+
+
+        // =================================
+        // NodeMCU URL
+        // =================================
+
+        const NODE_MCU_URL =
+            "http://robot.local";
+
+
+        // =================================
+        // TURN ON
+        // =================================
+
+        async function turnOn() {
+
+
+            try {
+
+
+                const response = await fetch(
+                    `${NODE_MCU_URL}/on`
+                );
+
+
+                const result =
+                    await response.text();
+
+
+                console.log(result);
+
+
+                updateStatus("💡 Light is ON");
+
+
+            }
+
+
+            catch (error) {
+
+
+                console.error(error);
+
+
+                updateStatus(
+                    "❌ Connection Error"
+                );
+            }
+        }
+
+
+        // =================================
+        // TURN OFF
+        // =================================
+
+        async function turnOff() {
+
+
+            try {
+
+
+                const response = await fetch(
+                    `${NODE_MCU_URL}/off`
+                );
+
+
+                const result =
+                    await response.text();
+
+
+                console.log(result);
+
+
+                updateStatus("🔴 Light is OFF");
+
+
+            }
+
+
+            catch (error) {
+
+
+                console.error(error);
+
+
+                updateStatus(
+                    "❌ Connection Error"
+                );
+            }
+        }
+
+
+        // =================================
+        // GET STATUS
+        // =================================
+
+        async function lightStatus() {
+
+
+            try {
+
+
+                const response = await fetch(
+                    `${NODE_MCU_URL}/status`
+                );
+
+
+                const status =
+                    await response.text();
+
+
+                console.log(
+                    "Current Status:",
+                    status
+                );
+
+
+                if (
+                    status.trim() === "ON"
+                ) {
+
+
+                    updateStatus(
+                        "💡 Light is ON"
+                    );
+
+
+                }
+
+
+                else {
+
+
+                    updateStatus(
+                        "🔴 Light is OFF"
+                    );
+                }
+
+
+            }
+
+
+            catch (error) {
+
+
+                console.error(error);
+
+
+                updateStatus(
+                    "❌ Connection Error"
+                );
+            }
+        }
+
+
+        // =================================
+        // UPDATE STATUS
+        // =================================
+
+        function updateStatus(message) {
+
+
+            document.getElementById(
+                "status"
+            ).textContent = message;
+        }
+
+
+        // =================================
+        // PAGE LOAD
+        // =================================
+
+        lightStatus();
+
+
+    </script>
+
+</body>
+
+</html>
